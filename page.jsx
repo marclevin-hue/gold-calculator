@@ -1,9 +1,6 @@
 "use client";
 
-import { useState } from "react";
-
-const SPOT_PER_GRAM = 145.65;
-const SPOT_STAMPED = "May 4, 2026";
+import { useState, useEffect } from "react";
 
 const PURITIES = {
   "18K": 0.75,
@@ -36,10 +33,29 @@ function calcRows(spotPerGram, grams) {
 
 export default function GoldPage() {
   const [grams, setGrams] = useState("");
+  const [spotPerGram, setSpotPerGram] = useState(null);
+  const [spotDate, setSpotDate] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    fetch("https://www.goldapi.io/api/XAU/USD", {
+      headers: { "x-access-token": "915c32d9a5e78e37088264f481025f5fab410df3c3095a27f8ba0748a32634f1" }
+    })
+      .then(r => r.json())
+      .then(data => {
+        const perGram = data.price / 31.1035;
+        setSpotPerGram(Math.round(perGram * 100) / 100);
+        const d = new Date(data.timestamp * 1000);
+        setSpotDate(d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }));
+        setLoading(false);
+      })
+      .catch(() => { setError(true); setLoading(false); });
+  }, []);
 
   const gramsNum = parseFloat(grams) || 0;
   const perGramMode = gramsNum <= 0;
-  const rows = calcRows(SPOT_PER_GRAM, gramsNum);
+  const rows = spotPerGram ? calcRows(spotPerGram, gramsNum) : [];
 
   return (
     <div style={{
@@ -94,12 +110,12 @@ export default function GoldPage() {
             fontWeight: 700,
             letterSpacing: "0.02em",
           }}>
-            {fmt(SPOT_PER_GRAM)}
+            {loading ? "Loading..." : error ? "Unavailable" : fmt(spotPerGram)}
           </span>
         </div>
 
         <div style={{ fontSize: 11, color: "#5a4a22", marginTop: 6 }}>
-          As of {SPOT_STAMPED} · Refresh chat for latest price
+          {loading ? "Fetching live price..." : error ? "Could not fetch price" : `As of ${spotDate} · Live`}
         </div>
       </div>
 
