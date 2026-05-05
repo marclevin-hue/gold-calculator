@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-const SPOT_PER_GRAM = 145.65;
-const SPOT_STAMPED = "May 4, 2026";
+const FALLBACK_SPOT = 145.65;
+const FALLBACK_DATE = "May 4, 2026";
 
 const PURITIES = {
   "18K": 0.75,
@@ -21,6 +21,12 @@ function fmt(n) {
   return n.toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 });
 }
 
+function formatSpotDate(timestamp) {
+  return new Date(timestamp * 1000).toLocaleDateString("en-US", {
+    month: "long", day: "numeric", year: "numeric",
+  });
+}
+
 function calcRows(spotPerGram, grams) {
   const multiplier = grams > 0 ? grams : 1;
   return Object.entries(MULTIPLIERS).map(([key, { label, min, max }]) => {
@@ -36,10 +42,24 @@ function calcRows(spotPerGram, grams) {
 
 export default function GoldPage() {
   const [grams, setGrams] = useState("");
+  const [spot, setSpot] = useState(FALLBACK_SPOT);
+  const [spotDate, setSpotDate] = useState(FALLBACK_DATE);
+
+  useEffect(() => {
+    fetch("/api/gold")
+      .then(r => r.json())
+      .then(data => {
+        if (data.price_gram_24k) {
+          setSpot(data.price_gram_24k);
+          setSpotDate(formatSpotDate(data.timestamp));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const gramsNum = parseFloat(grams) || 0;
   const perGramMode = gramsNum <= 0;
-  const rows = calcRows(SPOT_PER_GRAM, gramsNum);
+  const rows = calcRows(spot, gramsNum);
 
   return (
     <div style={{
@@ -94,12 +114,12 @@ export default function GoldPage() {
             fontWeight: 700,
             letterSpacing: "0.02em",
           }}>
-            {fmt(SPOT_PER_GRAM)}
+            {fmt(spot)}
           </span>
         </div>
 
         <div style={{ fontSize: 11, color: "#5a4a22", marginTop: 6 }}>
-          As of {SPOT_STAMPED} · Refresh chat for latest price
+          As of {spotDate} · Live via Yahoo Finance
         </div>
       </div>
 
