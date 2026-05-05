@@ -39,9 +39,7 @@ export default function GoldPage() {
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    fetch("https://www.goldapi.io/api/XAU/USD", {
-      headers: { "x-access-token": "915c32d9a5e78e37088264f481025f5fab410df3c3095a27f8ba0748a32634f1" }
-    })
+    fetch("/api/gold")
       .then(r => r.json())
       .then(data => {
         const perGram = data.price / 31.1035;
